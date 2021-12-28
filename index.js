@@ -1,27 +1,33 @@
-'use strict'
-const express = require('express')
+const express = require("express");
+const app = express();
+require("dotenv").config();
+const port = process.env.PORT || 8080;
+const cors = require("cors");
+app.use(cors());
+const connectToDb = require("./db");
+connectToDb();
+const auth = require("./routes/auth_routes");
 
-// Create the express app
-const app = express()
+const bodyParser = require("body-parser");
+// parse requests of content-type - application/json
+app.use(bodyParser.json());
+// parse requests of content-type - application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Routes and middleware
-// app.use(/* ... */)
-// app.get(/* ... */)
+app.get("/", (req, res) => {
+	res.send("API Working!");
+});
+app.use("/auth", auth);
 
 // Error handlers
-app.use(function fourOhFourHandler (req, res) {
-  res.status(404).send()
-})
-app.use(function fiveHundredHandler (err, req, res, next) {
-  console.error(err)
-  res.status(500).send()
-})
+app.use(function fourOhFourHandler(req, res) {
+	res.status(404).send();
+});
+app.use(function fiveHundredHandler(err, req, res, next) {
+	console.error(err);
+	res.status(500).send();
+});
 
-// Start server
-app.listen(1234, function (err) {
-  if (err) {
-    return console.error(err)
-  }
-
-  console.log('Started at http://localhost:1234')
-})
+app.listen(port, () => {
+	console.log(`Example app listening at http://localhost:${port}`);
+});

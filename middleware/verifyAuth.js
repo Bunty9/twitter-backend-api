@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
 
 verifyToken = (req, res, next) => {
 	let token = req.headers["x-access-token"];
@@ -17,18 +16,4 @@ verifyToken = (req, res, next) => {
 	});
 };
 
-isUser = (req, res, next) => {
-	User.findById(req.body.userid).exec((err, user) => {
-		if (err) {
-			res.send("User does not exist").status(404);
-			return;
-		}
-		next();
-	});
-};
-
-const authJwt = {
-	verifyToken,
-	isUser,
-};
-module.exports = authJwt;
+module.exports = verifyToken;

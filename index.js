@@ -7,6 +7,7 @@ app.use(cors());
 const connectToDb = require("./db");
 connectToDb();
 const auth = require("./routes/auth_routes");
+const user = require("./routes/user_routes");
 
 const bodyParser = require("body-parser");
 // parse requests of content-type - application/json
@@ -18,6 +19,7 @@ app.get("/", (req, res) => {
 	res.send("API Working!");
 });
 app.use("/auth", auth);
+app.use("/user", user);
 
 // Error handlers
 app.use(function fourOhFourHandler(req, res) {

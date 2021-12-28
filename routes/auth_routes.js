@@ -1,5 +1,4 @@
 const User = require("../models/User");
-const asyncHandler = require("../middleware/asyncHandler");
 const checkDuplicateUsernameOrEmail = require("../middleware/checkDuplicates");
 const express = require("express");
 const router = express.Router();

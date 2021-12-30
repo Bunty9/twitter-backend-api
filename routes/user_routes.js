@@ -3,27 +3,30 @@ const Tweet = require("../models/Tweet");
 const verifyToken = require("../middleware/verifyAuth");
 const express = require("express");
 const router = express.Router();
-//getUserInfo
-//editUserInfo
+
 // follow
-router.post("/:id/follow", verifyToken, async (req, res) => {
-    const user = await User.findById(req.params.id);
+router.post("/:username/follow", verifyToken, async (req, res, next) => {
+    const user = await User.findOne({ username: req.params.username });
     if (!user) {
-        return next({
-            message: `No user found for id ${req.params.id}`,
+        return res.send({
+            message: `No user found for username ${req.params.username}`,
             statusCode: 404,
         });
     }
+    const userId = user._id.toString();
     // check if already following
     if (user.followers.includes(req.userId)) {
-        return next({ message: "You are already following him", status: 400 });
+        return res.send({
+            message: "You are already following him",
+            status: 400,
+        });
     }
-    await User.findByIdAndUpdate(req.params.id, {
+    await User.findByIdAndUpdate(userId, {
         $push: { followers: req.userId },
         $inc: { followersCount: 1 },
     });
     await User.findByIdAndUpdate(req.userId, {
-        $push: { following: req.params.id },
+        $push: { following: userId },
         $inc: { followingCount: 1 },
     });
 
@@ -31,34 +34,69 @@ router.post("/:id/follow", verifyToken, async (req, res) => {
 });
 
 // unfollow
-router.post("/:id/unfollow", async (req, res) => {
-    const user = await User.findById(req.params.id);
+router.post("/:username/unfollow", verifyToken, async (req, res) => {
+    const user = await User.findOne({ username: req.params.username });
 
     if (!user) {
         return next({
-            message: `No user found for ID ${req.params.id}`,
+            message: `No user found for ID ${req.params.username}`,
             statusCode: 404,
         });
     }
-    if (req.params.id === req.userId) {
+    const userId = await user._id.toString();
+
+    if (userId === req.userId) {
         return next({
             message: "You can't follow/unfollow yourself",
             status: 400,
         });
     }
-    await User.findByIdAndUpdate(req.params.id, {
+    await User.findByIdAndUpdate(userId, {
         $pull: { followers: req.userId },
         $inc: { followersCount: -1 },
     });
     await User.findByIdAndUpdate(req.userId, {
-        $pull: { following: req.params.id },
+        $pull: { following: userId },
         $inc: { followingCount: -1 },
     });
 
     res.status(200).json({ success: true, data: {} });
 });
 
-//getTweets
+//get user feed
+router.route("/feed").get(verifyToken, async (req, res) => {
+    const following = req.user.following;
+    const users = await User.find()
+        .where("_id")
+        .in(following.concat([req.userId]))
+        .exec();
+
+    const tweetIDS = users.map((user) => user.tweet).flat();
+    console.log(tweetIDS);
+    const tweets = await Tweet.find()
+        .populate({ path: "user", select: "username" })
+        .sort("-createdAt")
+        .where("_id")
+        .in(tweetIDS)
+        .lean()
+        .exec();
+
+    res.status(200).json({ success: true, data: tweets });
+});
+
+//tweet new
+router.route("/tweet").post(verifyToken, async (req, res) => {
+    const { text } = req.body;
+    const user = req.userId;
+    const tweet = await Tweet.create({ user, text });
+
+    await User.findByIdAndUpdate(req.userId, {
+        $push: { tweet: tweet._id },
+        $inc: { tweetCount: 1 },
+    });
+
+    res.status(200).json({ success: true, data: tweet.text });
+});
 
 //test route
 router.route("/verify").post(verifyToken, (req, res) => {
@@ -66,29 +104,4 @@ router.route("/verify").post(verifyToken, (req, res) => {
     res.send("authorized");
 });
 
-// exports.feed = asyncHandler(async (req, res, next) => {
-// 	const following = req.user.following;
-
-// 	const users = await User.find()
-// 		.where("_id")
-// 		.in(following.concat([req.userId]))
-// 		.exec();
-
-// 	const tweetIDS = users.map((user) => user.tweet).flat();
-
-// 	const tweets = await Tweet.find()
-// 		.populate({
-// 			path: "comments",
-// 			select: "text",
-// 			populate: { path: "user", select: "username" },
-// 		})
-// 		.populate({ path: "user", select: "username" })
-// 		.sort("-createdAt")
-// 		.where("_id")
-// 		.in(tweetIDS)
-// 		.lean()
-// 		.exec();
-
-// 	res.status(200).json({ success: true, data: tweets });
-// });
 module.exports = router;

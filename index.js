@@ -16,20 +16,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-	res.send("API Working!");
+    res.send("API Working!");
 });
 app.use("/auth", auth);
 app.use("/user", user);
 
 // Error handlers
 app.use(function fourOhFourHandler(req, res) {
-	res.status(404).send();
+    res.status(404).send();
 });
 app.use(function fiveHundredHandler(err, req, res, next) {
-	console.error(err);
-	res.status(500).send();
+    console.error(err);
+    res.status(500).send();
 });
 
 app.listen(port, () => {
-	console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Server running on port:${port}`);
 });

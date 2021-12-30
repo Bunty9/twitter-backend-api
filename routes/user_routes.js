@@ -8,16 +8,23 @@ const router = express.Router();
 router.post("/:username/follow", verifyToken, async (req, res, next) => {
     const user = await User.findOne({ username: req.params.username });
     if (!user) {
-        return res.send({
+        return res.status(404).send({
             message: `No user found for username ${req.params.username}`,
-            statusCode: 404,
         });
     }
     const userId = user._id.toString();
+    if (userId === req.userId) {
+        return res
+            .send({
+                message: "You can't follow/unfollow yourself",
+                status: 400,
+            })
+            .status(400);
+    }
     // check if already following
     if (user.followers.includes(req.userId)) {
         return res.send({
-            message: "You are already following him",
+            message: "You are already following ",
             status: 400,
         });
     }
@@ -38,19 +45,28 @@ router.post("/:username/unfollow", verifyToken, async (req, res) => {
     const user = await User.findOne({ username: req.params.username });
 
     if (!user) {
-        return next({
-            message: `No user found for ID ${req.params.username}`,
-            statusCode: 404,
-        });
+        return res
+            .send({
+                message: `No user found for username ${req.params.username}`,
+            })
+            .status(404);
     }
     const userId = await user._id.toString();
 
     if (userId === req.userId) {
-        return next({
+        return res.status(400).send({
             message: "You can't follow/unfollow yourself",
             status: 400,
         });
     }
+    // check if already unfollowing
+    if (!user.followers.includes(req.userId)) {
+        return res.send({
+            message: "You are already unfollowing",
+            status: 400,
+        });
+    }
+
     await User.findByIdAndUpdate(userId, {
         $pull: { followers: req.userId },
         $inc: { followersCount: -1 },
@@ -60,7 +76,10 @@ router.post("/:username/unfollow", verifyToken, async (req, res) => {
         $inc: { followingCount: -1 },
     });
 
-    res.status(200).json({ success: true, data: {} });
+    res.status(200).json({
+        success: true,
+        message: `successfully followed: ${req.params.usename}`,
+    });
 });
 
 //get user feed
